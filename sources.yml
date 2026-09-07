@@ -1,0 +1,413 @@
+settings:
+  timezone: Asia/Shanghai
+  max_items_per_source: 35
+  report_top_n: 60
+  china_report_ratio: 0.75
+  news_window_days: 3
+  freshness_half_life_hours: 36
+  min_cluster_similarity: 0.45
+  hot_topic_source_threshold: 2
+  core_topic_source_threshold: 4
+  max_related_links_per_topic: 4
+
+source_quality_scores:
+  default: 0.75
+  categories:
+    official_blog: 1.25
+    ai_china: 1.12
+    business_china: 1.08
+    official_china: 1.05
+    china_tech: 0.98
+    china_media: 0.95
+    developer: 1.05
+    international: 0.9
+    google_news: 0.7
+  sources:
+    OpenAI Blog: 1.35
+    Google AI Blog: 1.25
+    Anthropic News: 1.25
+    Microsoft Azure Blog: 1.18
+    GitHub Blog: 1.15
+    机器之心: 1.18
+    量子位: 1.16
+    雷峰网: 1.13
+    36氪: 1.12
+    钛媒体: 1.1
+    IT之家: 1.02
+    新浪科技: 0.95
+    中国新闻网科技: 0.95
+    cnBeta: 0.82
+    少数派: 1.0
+    GitHub Trending: 1.08
+    Hacker News: 1.05
+    TechCrunch: 0.95
+    The Verge: 0.9
+
+keywords:
+  china_high:
+    - AI
+    - 大模型
+    - 智能体
+    - Agent
+    - 芯片
+    - 半导体
+    - 算力
+    - 华为
+    - 阿里
+    - 腾讯
+    - 字节跳动
+    - 百度
+    - 小米
+    - 京东
+    - 美团
+    - 拼多多
+    - 比亚迪
+    - 蔚来
+    - 小鹏
+    - 理想
+    - 自动驾驶
+    - 机器人
+    - 鸿蒙
+    - 低空经济
+    - 卫星互联网
+    - 数据中心
+    - 出海
+    - 监管
+    - 投融资
+  china_medium:
+    - 创业
+    - 融资
+    - IPO
+    - 电商
+    - 云计算
+    - 手机
+    - 硬件
+    - 智能车
+    - 新能源
+    - 软件
+    - 开源
+    - 产业
+  international_high:
+    - AI
+    - LLM
+    - Agent
+    - OpenAI
+    - Google
+    - Anthropic
+    - Meta
+    - Microsoft
+    - NVIDIA
+    - GitHub
+    - Apple
+    - semiconductor
+    - robotics
+    - startup
+  international_medium:
+    - cloud
+    - chip
+    - developer
+    - open source
+    - cybersecurity
+    - research
+    - data center
+  exclude:
+    - giveaway
+    - coupon
+    - sponsored
+    - 广告
+    - 优惠券
+
+rss_sources:
+  - name: IT之家
+    enabled: true
+    url: https://www.ithome.com/rss/
+    category: china_tech
+    region: china
+    quality_score: 1.02
+    coverage_score: 0.85
+    authority_score: 0.7
+    priority: 1.25
+    weight: 1.25
+    description: 消费电子、手机、系统、硬件、智能车、AI 产品快讯
+  - name: 钛媒体
+    enabled: true
+    url: https://www.tmtpost.com/feed
+    category: business_china
+    region: china
+    quality_score: 1.1
+    coverage_score: 0.78
+    authority_score: 0.72
+    priority: 1.18
+    weight: 1.18
+    description: 科技商业、创投、公司、产业观察
+  - name: 少数派
+    enabled: true
+    url: https://sspai.com/feed
+    category: china_media
+    region: china
+    quality_score: 1.0
+    coverage_score: 0.55
+    authority_score: 0.68
+    priority: 1.05
+    weight: 1.05
+    description: 数字生活、效率工具、AI 工具、软件生态
+  - name: 36氪
+    enabled: true
+    url: https://36kr.com/feed
+    category: business_china
+    region: china
+    quality_score: 1.12
+    coverage_score: 0.88
+    authority_score: 0.75
+    priority: 1.2
+    weight: 1.2
+    description: 创业、融资、互联网公司、商业科技
+  - name: cnBeta
+    enabled: true
+    url: https://www.cnbeta.com.tw/backend.php
+    category: china_tech
+    region: china
+    quality_score: 0.82
+    coverage_score: 0.95
+    authority_score: 0.55
+    priority: 1.08
+    weight: 1.08
+    description: 综合科技快讯、国际科技转载、本土科技资讯
+  - name: 新浪科技
+    enabled: true
+    url: http://rss.sina.com.cn/tech/rollnews.xml
+    category: china_tech
+    region: china
+    quality_score: 0.95
+    coverage_score: 0.85
+    authority_score: 0.72
+    priority: 1.08
+    weight: 1.08
+    description: 新浪科技滚动新闻、互联网公司、产业与消费科技
+  - name: 中国新闻网科技
+    enabled: false
+    status: pending
+    disabled_reason: 中国新闻网 RSS 中心未提供稳定的科技文本专栏 RSS，先不接入通用新闻源
+    url: https://www.chinanews.com.cn/rss/scroll-news.xml
+    category: official_china
+    region: china
+    quality_score: 0.95
+    coverage_score: 0.65
+    authority_score: 0.88
+    priority: 1.0
+    weight: 1.0
+    description: 中新网科技相关报道；待稳定科技 RSS 或轻量采集方案确认后启用
+  - name: 机器之心
+    enabled: false
+    status: pending
+    disabled_reason: https://www.jiqizhixin.com/rss 当前不是稳定可解析 RSS，历史采集为 0
+    url: https://www.jiqizhixin.com/rss
+    category: ai_china
+    region: china
+    quality_score: 1.18
+    coverage_score: 0.72
+    authority_score: 0.82
+    priority: 1.22
+    weight: 1.22
+    description: AI、机器学习、大模型、论文、产业动态
+  - name: 量子位
+    enabled: true
+    url: https://www.qbitai.com/feed
+    category: ai_china
+    region: china
+    quality_score: 1.16
+    coverage_score: 0.72
+    authority_score: 0.8
+    priority: 1.18
+    weight: 1.18
+    description: AI、大模型、机器人、自动驾驶、AI 产品
+  - name: 雷峰网
+    enabled: true
+    url: https://www.leiphone.com/feed
+    category: ai_china
+    region: china
+    quality_score: 1.13
+    coverage_score: 0.74
+    authority_score: 0.78
+    priority: 1.12
+    weight: 1.12
+    description: AI、智能硬件、汽车科技、产业报道
+  - name: TechCrunch
+    enabled: true
+    url: https://techcrunch.com/feed/
+    category: international
+    region: international
+    quality_score: 0.95
+    coverage_score: 0.82
+    authority_score: 0.8
+    priority: 0.72
+    weight: 0.72
+    description: 国际创业、AI 公司、平台动态
+  - name: The Verge
+    enabled: true
+    url: https://www.theverge.com/rss/index.xml
+    category: international
+    region: international
+    quality_score: 0.9
+    coverage_score: 0.82
+    authority_score: 0.75
+    priority: 0.68
+    weight: 0.68
+    description: 消费科技、平台、硬件
+  - name: OpenAI Blog
+    enabled: true
+    url: https://openai.com/news/rss.xml
+    category: official_blog
+    region: international
+    quality_score: 1.35
+    coverage_score: 0.45
+    authority_score: 1.0
+    priority: 1.05
+    weight: 1.05
+    description: AI 官方发布、模型、产品更新
+  - name: Google AI Blog
+    enabled: true
+    url: https://blog.google/technology/ai/rss/
+    category: official_blog
+    region: international
+    quality_score: 1.25
+    coverage_score: 0.5
+    authority_score: 1.0
+    priority: 0.95
+    weight: 0.95
+    description: AI 官方发布、模型、产品更新
+  - name: Anthropic News
+    enabled: true
+    url: https://www.anthropic.com/news/rss.xml
+    category: official_blog
+    region: international
+    quality_score: 1.25
+    coverage_score: 0.45
+    authority_score: 1.0
+    priority: 0.95
+    weight: 0.95
+    description: AI 官方发布、模型、产品更新
+  - name: Microsoft Azure Blog
+    enabled: true
+    url: https://azure.microsoft.com/en-us/blog/feed/
+    category: official_blog
+    region: international
+    quality_score: 1.18
+    coverage_score: 0.6
+    authority_score: 1.0
+    priority: 0.82
+    weight: 0.82
+    description: 云计算、AI 平台、企业技术更新
+  - name: GitHub Blog
+    enabled: true
+    url: https://github.blog/feed/
+    category: official_blog
+    region: international
+    quality_score: 1.15
+    coverage_score: 0.55
+    authority_score: 1.0
+    priority: 0.82
+    weight: 0.82
+    description: 开发者工具、开源生态、平台更新
+
+google_news_rss:
+  - name: Google News 中国AI
+    enabled: true
+    query: 中国 AI 大模型 科技 when:1d
+    category: ai_china
+    region: china
+    quality_score: 0.7
+    coverage_score: 0.8
+    authority_score: 0.45
+    priority: 0.9
+    weight: 0.9
+  - name: Google News 中国芯片
+    enabled: true
+    query: 中国 芯片 半导体 科技 when:1d
+    category: china_tech
+    region: china
+    quality_score: 0.7
+    coverage_score: 0.78
+    authority_score: 0.45
+    priority: 0.88
+    weight: 0.88
+  - name: Google News 智能车
+    enabled: true
+    query: 中国 自动驾驶 智能车 科技 when:1d
+    category: china_tech
+    region: china
+    quality_score: 0.7
+    coverage_score: 0.78
+    authority_score: 0.45
+    priority: 0.86
+    weight: 0.86
+  - name: Google News 投融资
+    enabled: true
+    query: 中国 科技 投融资 创业 when:1d
+    category: business_china
+    region: china
+    quality_score: 0.7
+    coverage_score: 0.75
+    authority_score: 0.45
+    priority: 0.84
+    weight: 0.84
+  - name: Google News 晚点界面科技
+    enabled: true
+    query: 晚点 LatePost 界面新闻 科技 公司 when:1d
+    category: business_china
+    region: china
+    quality_score: 0.7
+    coverage_score: 0.7
+    authority_score: 0.45
+    priority: 0.82
+    weight: 0.82
+  - name: Google News 国际AI
+    enabled: true
+    query: OpenAI Google Anthropic Meta Microsoft AI when:1d
+    category: international
+    region: international
+    quality_score: 0.7
+    coverage_score: 0.72
+    authority_score: 0.45
+    priority: 0.68
+    weight: 0.68
+  - name: Google News 国际芯片
+    enabled: true
+    query: NVIDIA semiconductor robotics startup technology when:1d
+    category: international
+    region: international
+    quality_score: 0.7
+    coverage_score: 0.72
+    authority_score: 0.45
+    priority: 0.65
+    weight: 0.65
+
+hacker_news:
+  enabled: true
+  region: international
+  category: developer
+  quality_score: 1.05
+  coverage_score: 0.75
+  authority_score: 0.7
+  priority: 0.72
+  weight: 0.72
+  min_points: 80
+  tags:
+    - story
+
+github_trending:
+  enabled: true
+  region: international
+  category: developer
+  quality_score: 1.08
+  coverage_score: 0.68
+  authority_score: 0.9
+  priority: 0.75
+  weight: 0.75
+  since: daily
+  languages:
+    - python
+    - javascript
+    - go
+    - rust
+    - ""
