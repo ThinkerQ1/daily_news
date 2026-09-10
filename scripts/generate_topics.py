@@ -318,6 +318,54 @@ def _parse_markdown(report_path: Path) -> list[dict[str, Any]]:
     return stories
 
 
+def _parse_focus_markdown(report_path: Path) -> list[dict[str, Any]]:
+    stories: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    in_focus = False
+    for line in report_path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            if in_focus:
+                break
+            in_focus = line.strip() == "## 今日重点"
+            continue
+        if not in_focus:
+            continue
+        match = re.match(r"^\d+\.\s+(.+)$", line)
+        if match:
+            if current:
+                stories.append(current)
+            current = {
+                "topic_title": match.group(1).strip(),
+                "sources": [],
+                "source_categories": [],
+                "matched_keywords": [],
+                "main_item": {"title": match.group(1).strip(), "source": "unknown", "url": ""},
+                "related_items": [],
+            }
+            continue
+        if not current:
+            continue
+        if "主要来源：" in line:
+            source_match = re.search(r"主要来源：(.+?)\s*\|\s*\[主链接\]\((.*?)\)", line)
+            if source_match:
+                current["main_item"]["source"] = source_match.group(1).strip()
+                current["main_item"]["url"] = source_match.group(2).strip()
+        elif "相关链接：" in line:
+            for source, url in re.findall(r"([^：；]+)：\[链接\]\((.*?)\)", line):
+                current["related_items"].append({"source": source.strip(), "url": url.strip(), "title": current["topic_title"]})
+        elif "摘要：" in line:
+            summary = line.split("摘要：", 1)[1].strip()
+            current["summary"] = summary
+            current["main_item"]["summary"] = summary
+        elif "为什么重要：" in line:
+            current["why_important"] = line.split("为什么重要：", 1)[1].strip()
+    if current:
+        stories.append(current)
+    for story in stories:
+        story["id"] = _story_id(story)
+    return stories
+
+
 def _matches_theme(story: dict[str, Any], theme: dict[str, Any]) -> bool:
     return _theme_match_score(story, theme) > 0
 
@@ -424,7 +472,27 @@ def _render_sources(stories: list[dict[str, Any]]) -> list[str]:
     return lines or ["     - 暂无可引用链接"]
 
 
-def _render_markdown(date_str: str, groups: list[dict[str, Any]]) -> str:
+def _render_focus_markdown(stories: list[dict[str, Any]]) -> list[str]:
+    lines = ["", "## 日报今日重点专题角度", ""]
+    if not stories:
+        lines.append("今日日报没有可用于衍生选题的重点事件。")
+        return lines
+
+    for index, story in enumerate(stories, 1):
+        title = story["topic_title"]
+        lines.extend(
+            [
+                f"### {index}. {title}",
+                f"- 选题角度：不要复述新闻本身，重点追问这件事会改变哪些用户选择、公司策略或产业节奏。",
+                f"- 核心依据：{story.get('summary') or story.get('why_important') or title}",
+                "- 相关来源：",
+            ]
+        )
+        lines.extend(_render_sources([story]))
+    return lines
+
+
+def _render_markdown(date_str: str, groups: list[dict[str, Any]], focus_stories: list[dict[str, Any]] | None = None) -> str:
     directions = "、".join(group["theme"]["name"] for group in groups)
     lines = [
         f"# 今日自媒体选题推荐 - {date_str}",
@@ -462,6 +530,7 @@ def _render_markdown(date_str: str, groups: list[dict[str, Any]]) -> str:
                 "",
             ]
         )
+    lines.extend(_render_focus_markdown(focus_stories or []))
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -495,7 +564,7 @@ def generate_topics(date_str: str | None = None, input_path: str | Path | None =
 
     TOPICS_DIR.mkdir(parents=True, exist_ok=True)
     output_path = TOPICS_DIR / f"topics-{date_str}.md"
-    output_path.write_text(_render_markdown(date_str, groups), encoding="utf-8")
+    output_path.write_text(_render_markdown(date_str, groups, _parse_focus_markdown(report_path)), encoding="utf-8")
     return str(output_path.resolve())
 
 

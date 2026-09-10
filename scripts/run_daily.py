@@ -127,6 +127,14 @@ def main() -> None:
     else:
         print(f"Site generated: {site_index}")
     try:
+        sent_path = send_report(Path(report_path))
+    except Exception as exc:
+        print(f"Telegram send failed: {exc}", file=sys.stderr)
+        _append_runtime_log(f"Telegram send failed: {exc}")
+    else:
+        print(f"Telegram report sent: {sent_path.name}")
+        _append_runtime_log(f"Telegram report sent: {sent_path.name}")
+    try:
         sent_path = send_report(Path(recommendation_path))
     except Exception as exc:
         print(f"Telegram send failed: {exc}", file=sys.stderr)

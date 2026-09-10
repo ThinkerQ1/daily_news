@@ -354,7 +354,69 @@ def _rank_for_push(records: list[dict[str, Any]], config: dict[str, Any]) -> lis
     return candidates[:top_n]
 
 
-def _render_markdown(records: list[dict[str, Any]], selected: list[dict[str, Any]], date_str: str, config: dict[str, Any]) -> Path:
+def _daily_focus_titles(date_str: str) -> list[str]:
+    path = REPORTS_DIR / f"daily-tech-news-{date_str}.md"
+    if not path.exists():
+        return []
+
+    titles = []
+    in_focus = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            if in_focus:
+                break
+            in_focus = line.strip() == "## 今日重点"
+            continue
+        if not in_focus:
+            continue
+        match = re.match(r"^\d+\.\s+(.+)$", line)
+        if match:
+            titles.append(match.group(1).strip())
+    return titles
+
+
+def _title_key(title: str) -> str:
+    return re.sub(r"\s+", " ", title).strip().lower()
+
+
+def _focus_records_from_report(records: list[dict[str, Any]], date_str: str) -> list[dict[str, Any]]:
+    focus_records = []
+    unused = list(records)
+    for title in _daily_focus_titles(date_str):
+        title_key = _title_key(title)
+        match = next((record for record in unused if _title_key(record["event_title"]) == title_key), None)
+        if not match:
+            match = next((record for record in unused if title_key in _title_key(record["event_title"]) or _title_key(record["event_title"]) in title_key), None)
+        if match:
+            focus_records.append(match)
+            unused.remove(match)
+    return focus_records
+
+
+def _render_focus_topics(focus_records: list[dict[str, Any]]) -> list[str]:
+    lines = ["", "## 日报今日重点衍生选题", ""]
+    if not focus_records:
+        lines.append("今日日报没有可用于衍生选题的重点事件。")
+        return lines
+
+    for index, record in enumerate(focus_records, 1):
+        topic = record["topic"]
+        summary = record["event_summary"] or record["event_title"]
+        links = record["links"][:2]
+        lines.extend(
+            [
+                f"{index}. {topic['topic_title']}",
+                f"   - 来自日报重点：{record['event_title']}",
+                f"   - 核心事件：{summary}",
+                f"   - 推荐切入：{topic['recommended_angle']}",
+            ]
+        )
+        if links:
+            lines.append("   - 原始链接：" + "；".join(f"{link['source']}：{link['url']}" for link in links))
+    return lines
+
+
+def _render_markdown(records: list[dict[str, Any]], selected: list[dict[str, Any]], focus_records: list[dict[str, Any]], date_str: str, config: dict[str, Any]) -> Path:
     lines = [
         "# dailyNews · 今日科技商业选题",
         "",
@@ -409,6 +471,8 @@ def _render_markdown(records: list[dict[str, Any]], selected: list[dict[str, Any
         lines.extend(f"- {link['source']}：{link['url']}" for link in record["links"][:5])
         lines.append("")
 
+    lines.extend(_render_focus_topics(focus_records))
+
     path = REPORTS_DIR / f"topic-radar-{date_str}.md"
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return path
@@ -416,9 +480,13 @@ def _render_markdown(records: list[dict[str, Any]], selected: list[dict[str, Any
 
 def generate_recommendations(events: list[dict[str, Any]], config: dict[str, Any], date_str: str) -> str:
     report_events = select_report_items(events, config)
+    focus_event_ids = {event["id"] for event in report_events[:6]}
     report_event_ids = {event["id"] for event in report_events}
     ordered_events = report_events + [event for event in events if event["id"] not in report_event_ids]
     records = [_recommendation_record(event, config) for event in ordered_events]
+    focus_records = _focus_records_from_report(records, date_str)
+    if not focus_records:
+        focus_records = [record for event, record in zip(ordered_events, records) if event["id"] in focus_event_ids]
     selected = _rank_for_push(records, config)
     selected_ids = {record["id"] for record in selected}
     records = selected + [record for record in records if record["id"] not in selected_ids]
@@ -428,7 +496,8 @@ def generate_recommendations(events: list[dict[str, Any]], config: dict[str, Any
         "scoring_weights": config.get("recommendation", {}).get("score_weights", {}),
         "selection_weights": config.get("recommendation", {}).get("selection_weights", {}),
         "candidate_pool_size": config.get("recommendation", {}).get("candidate_pool_size", 20),
+        "daily_focus_topics": focus_records,
         "recommendations": records,
     }
     write_json(RECOMMENDATIONS_DIR / f"{date_str}.json", output)
-    return str(_render_markdown(records, selected, date_str, config))
+    return str(_render_markdown(records, selected, focus_records, date_str, config))
