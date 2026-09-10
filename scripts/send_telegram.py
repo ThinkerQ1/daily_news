@@ -117,7 +117,7 @@ def send_report(report_path: Path) -> Path:
     url = f"https://api.telegram.org/bot{token}/sendDocument"
     data = {
         "chat_id": chat_id,
-        "caption": f"今日日报已生成：{report_path.name}",
+        "caption": f"今日推送已生成：{report_path.name}",
     }
     proxies = {"http": proxy, "https": proxy} if proxy else None
 

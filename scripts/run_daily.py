@@ -10,7 +10,9 @@ from collect_github_trending import collect_github_trending
 from collect_hn import collect_hn
 from collect_rss import collect_rss
 from cluster_topics import cluster_topics
+from dedupe import dedupe_items
 from filter_recent import filter_recent_items
+from generate_recommendations import generate_recommendations
 from generate_report import generate_report
 from generate_topics import generate_topics
 from normalize import normalize_items
@@ -76,7 +78,7 @@ def collect_sspai_items(config: dict, date_str: str) -> list[dict]:
     return [_openclaw_sspai_item(item, source_config) for item in load_openclaw_items(date_str)]
 
 
-def run(date_str: str | None = None, force: bool = False, window_days: int | None = None) -> str:
+def run(date_str: str | None = None, force: bool = False, window_days: int | None = None) -> tuple[str, str]:
     ensure_dirs()
     config = load_sources()
     date_str = date_str or today_string()
@@ -91,10 +93,13 @@ def run(date_str: str | None = None, force: bool = False, window_days: int | Non
 
     write_json(Path("data/processed") / f"{date_str}-collected.json", all_items)
     normalized = normalize_items(all_items, date_str)
-    recent_items, time_audit = filter_recent_items(normalized, date_str, effective_window_days)
+    deduped = dedupe_items(normalized, date_str)
+    recent_items, time_audit = filter_recent_items(deduped, date_str, effective_window_days)
     clusters, cluster_audit = cluster_topics(recent_items, config, date_str)
     write_json(Path("data/processed") / f"{date_str}-ranked.json", clusters)
-    return generate_report(clusters, config, date_str, time_audit, cluster_audit)
+    report_path = generate_report(clusters, config, date_str, time_audit, cluster_audit)
+    recommendation_path = generate_recommendations(clusters, config, date_str)
+    return report_path, recommendation_path
 
 
 def main() -> None:
@@ -103,8 +108,9 @@ def main() -> None:
     parser.add_argument("--force", action="store_true", help="Regenerate today's report even if output files already exist.")
     parser.add_argument("--window-days", type=int, help="Only keep news published or collected within this many days.")
     args = parser.parse_args()
-    report_path = run(args.date, force=args.force, window_days=args.window_days)
+    report_path, recommendation_path = run(args.date, force=args.force, window_days=args.window_days)
     print(f"Generated report: {report_path}")
+    print(f"Generated topic radar: {recommendation_path}")
     try:
         topics_path = generate_topics(args.date, Path(report_path))
     except Exception as exc:
@@ -121,7 +127,7 @@ def main() -> None:
     else:
         print(f"Site generated: {site_index}")
     try:
-        sent_path = send_report(Path(report_path))
+        sent_path = send_report(Path(recommendation_path))
     except Exception as exc:
         print(f"Telegram send failed: {exc}", file=sys.stderr)
         _append_runtime_log(f"Telegram send failed: {exc}")

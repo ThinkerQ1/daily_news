@@ -10,6 +10,25 @@ settings:
   core_topic_source_threshold: 4
   max_related_links_per_topic: 4
 
+recommendation:
+  top_n: 5
+  min_push_score: 6.0
+  candidate_pool_size: 20
+  levels:
+    strong: 8.0
+    watch: 7.0
+    backup: 6.0
+  score_weights:
+    importance_score: 0.25
+    business_score: 0.25
+    discussion_score: 0.20
+    depth_score: 0.20
+    controversy_score: 0.05
+    freshness_score: 0.05
+  selection_weights:
+    total_score: 0.65
+    heat_score: 0.35
+
 source_quality_scores:
   default: 0.75
   categories:

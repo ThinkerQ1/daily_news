@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from dateutil import parser
 
 from rank import _keyword_score, _metrics_score
-from utils import LOGS_DIR, PROCESSED_DIR, stable_id, write_json
+from utils import EVENTS_DIR, LOGS_DIR, PROCESSED_DIR, stable_id, write_json
 
 
 KEY_TERMS = [
@@ -339,7 +339,7 @@ def cluster_topics(
             score = _cluster_similarity(item, cluster)
             if score > best_score:
                 best_score = score
-            best_cluster = cluster
+                best_cluster = cluster
 
         if best_cluster and best_score >= threshold:
             domain = item["_domain"]
@@ -403,4 +403,5 @@ def cluster_topics(
     }
     write_json(PROCESSED_DIR / f"{date_str}-topic-clusters.json", finalized)
     write_json(PROCESSED_DIR / f"{date_str}-cluster-audit.json", audit)
+    write_json(EVENTS_DIR / f"{date_str}.json", finalized)
     return finalized, audit

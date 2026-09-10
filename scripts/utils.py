@@ -14,6 +14,9 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
+NORMALIZED_DIR = PROJECT_ROOT / "data" / "normalized"
+EVENTS_DIR = PROJECT_ROOT / "data" / "events"
+RECOMMENDATIONS_DIR = PROJECT_ROOT / "data" / "recommendations"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 LOGS_DIR = PROJECT_ROOT / "logs"
@@ -21,7 +24,7 @@ SOURCES_FILE = PROJECT_ROOT / "sources.yml"
 
 
 def ensure_dirs() -> None:
-    for path in (RAW_DIR, PROCESSED_DIR, REPORTS_DIR, LOGS_DIR):
+    for path in (RAW_DIR, NORMALIZED_DIR, EVENTS_DIR, RECOMMENDATIONS_DIR, PROCESSED_DIR, REPORTS_DIR, LOGS_DIR):
         path.mkdir(parents=True, exist_ok=True)
 
 

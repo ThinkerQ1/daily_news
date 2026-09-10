@@ -77,7 +77,7 @@ def _line_for_item(index: int, topic: dict[str, Any], config: dict[str, Any]) ->
     return "\n".join(lines)
 
 
-def _select_items(items: list[dict[str, Any]], config: dict[str, Any]) -> list[dict[str, Any]]:
+def select_report_items(items: list[dict[str, Any]], config: dict[str, Any]) -> list[dict[str, Any]]:
     top_n = int(config.get("settings", {}).get("report_top_n", 60))
     china_ratio = float(config.get("settings", {}).get("china_report_ratio", 0.75))
     china_target = round(top_n * china_ratio)
@@ -125,7 +125,7 @@ def generate_report(
     cluster_audit: dict[str, Any] | None = None,
 ) -> str:
     _append_section.config = config
-    selected = _select_items(items, config)
+    selected = select_report_items(items, config)
     source_counts = Counter(_main_item(item).get("source_type", "unknown") for item in selected)
     category_counts = Counter(category for item in selected for category in item.get("source_categories", [_main_item(item).get("source_category", "unknown")]))
     region_counts = Counter("china" if _is_china(item) else "international" for item in selected)

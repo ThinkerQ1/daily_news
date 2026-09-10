@@ -1,29 +1,32 @@
 # Daily News
 
-一个轻量的每日科技新闻采集、聚类、日报生成和自媒体选题提炼项目。核心原则是先用公开、稳定、可解释的数据源和规则完成闭环，再按需要接入 OpenClaw 做少量网页补采。
+一个轻量的每日科技新闻采集、聚类、日报生成和科技商业自媒体选题雷达项目。核心原则是先用公开、稳定、可解释的数据源和规则完成闭环，再按需要接入 OpenClaw 做少量网页补采。
 
 ## 第一性原理流程
 
 本项目把每日新闻处理拆成几个清晰步骤：
 
 1. 采集：从 RSS、公开 API、GitHub Trending、Hacker News 和 Google News RSS 获取候选新闻。
-2. 归一化：统一标题、链接、来源、发布时间、分类和区域。
-3. 过滤：只保留最近窗口内的新闻，默认最近 3 天。
-4. 聚类：把相似标题或多源报道合并成一个 topic cluster。
-5. 排序：按来源质量、关键词、时效、多源数量和社区指标计算热度。
-6. 生成日报：输出 `reports/daily-tech-news-YYYY-MM-DD.md`。
-7. 生成选题：从日报和聚类结果提炼 3～5 个自媒体专题角度。
-8. 推送：日报成功后再尝试发送 Telegram；推送失败不影响日报文件。
+2. 标准化：统一标题、链接、来源、发布时间、语言、公司、主题和事件类型。
+3. 去重：先按 URL 去重，再按标题相似度合并完全重复或近似重复新闻。
+4. 过滤：只保留最近窗口内的新闻，默认最近 3 天。
+5. 事件聚合：把相似标题或多源报道合并成一个 topic cluster。
+6. 日报排序：按来源质量、关键词、时效、多源数量和社区指标计算 `heat_score`。
+7. 生成日报：输出 `reports/daily-tech-news-YYYY-MM-DD.md`。
+8. 生成选题雷达：优先从日报候选池中选出 Top 5 科技商业选题，输出完整 JSON 和 Telegram Markdown。
+9. 推送：选题雷达生成后再尝试发送 Telegram；推送失败不影响本地文件。
 
 ## 数据源
 
-- 科技媒体 RSS：TechCrunch、The Verge、Ars Technica、Wired、MIT Technology Review、IEEE Spectrum
+- 国内科技媒体 RSS：IT之家、钛媒体、少数派、36氪、cnBeta、新浪科技、量子位、雷峰网
+- 待稳定后启用的国内源：中国新闻网科技、机器之心
+- 国际科技媒体 RSS：TechCrunch、The Verge
 - 官方博客 RSS：OpenAI、Google AI、Microsoft Azure、AWS、GitHub
 - Hacker News：Algolia HN Search API
 - GitHub Trending：公开页面解析
 - Google News RSS：按关键词生成 RSS 搜索源
 
-新闻源、关键词、权重和采集设置都在 `sources.yml` 中维护。
+新闻源、关键词、推荐权重和采集设置都在 `sources.yml` 中维护。每个 source 配置都包含 `enabled`、`quality_score`、`category`、`region`，国内源 `region=china`。
 
 ## 目录结构
 
@@ -40,12 +43,16 @@
 │   ├── dedupe.py
 │   ├── rank.py
 │   ├── generate_report.py
+│   ├── generate_recommendations.py
 │   ├── send_telegram.py
 │   └── generate_topics.py
 ├── prompts/
 │   └── openclaw/
 ├── data/
 │   ├── raw/
+│   ├── normalized/
+│   ├── events/
+│   ├── recommendations/
 │   └── processed/
 ├── reports/
 └── outputs/
@@ -89,43 +96,63 @@ python scripts/run_daily.py --window-days 3 --force
 
 ```text
 reports/daily-tech-news-YYYY-MM-DD.md
+reports/topic-radar-YYYY-MM-DD.md
 ```
 
-原始数据保存到 `data/raw/YYYY-MM-DD/`，处理后的 JSON 保存到 `data/processed/`。
+原始数据保存到 `data/raw/YYYY-MM-DD/`。标准化新闻、事件聚合和完整推荐结果分别保存到：
 
-## 自媒体选题提炼
+```text
+data/normalized/YYYY-MM-DD.json
+data/events/YYYY-MM-DD.json
+data/recommendations/YYYY-MM-DD.json
+```
 
-日报生成成功后，`scripts/run_daily.py` 会额外调用 `scripts/generate_topics.py`，基于当天日报提炼 3～5 个“今日推荐选题”。第一版使用规则和模板生成，不直接生成完整文章。
+兼容旧流程的中间 JSON 仍保存到 `data/processed/`。
 
-选题文件输出到：
+## 科技商业选题雷达
+
+日报生成成功后，`scripts/run_daily.py` 会调用 `scripts/generate_recommendations.py`，生成“今日科技商业选题”。系统不直接生成完整文章，只回答“今天什么最值得做”。
+
+完整推荐结果输出到：
+
+```text
+data/recommendations/YYYY-MM-DD.json
+```
+
+Telegram 推送文件输出到：
+
+```text
+reports/topic-radar-YYYY-MM-DD.md
+```
+
+每条推荐包含：
+
+- 事件标题、事件摘要、来源和原始链接
+- AI / 大模型、芯片 / 半导体、消费电子、互联网公司、机器人、新能源汽车、云计算、软件 / SaaS、科技政策、资本市场等分类
+- 重要性、商业价值、讨论价值、争议性、延展性、时效性 6 个维度评分
+- 每个评分的一句简短理由
+- 选题标题、核心问题、推荐切入角度和 3～5 个研究方向
+- 信息边界提示，避免把市场消息或推测写成事实
+
+推送 Top 5 默认从 `daily-tech-news` 的日报候选池前 20 个事件中选择，再按 `selection_score` 排序。`selection_score` 默认由 65% 六维综合评分和 35% 日报热度组成，权重在 `sources.yml` 的 `recommendation` 中调整。
+
+手动根据已有事件文件重新生成选题雷达：
+
+```bash
+PYTHONPATH=scripts .venv/bin/python -c 'from pathlib import Path; from utils import load_sources, read_json; from generate_recommendations import generate_recommendations; print(generate_recommendations(read_json(Path("data/processed/2026-09-10-topic-clusters.json")), load_sources(), "2026-09-10"))'
+```
+
+`scripts/generate_topics.py` 仍保留作为旧版日报选题辅助工具，会输出到：
 
 ```text
 outputs/topics/topics-YYYY-MM-DD.md
 ```
 
-手动生成当天选题：
-
-```bash
-.venv/bin/python scripts/generate_topics.py
-```
-
-指定日期：
-
-```bash
-.venv/bin/python scripts/generate_topics.py --date 2026-05-28
-```
-
-指定某一份日报文件：
-
-```bash
-.venv/bin/python scripts/generate_topics.py --input reports/daily-tech-news-2026-05-28.md
-```
-
-选题文件只包含专题角度、推荐标题、大纲、相关来源、可引用链接、目标读者、传播点和风险点。后续写完整文章时，可以先选择“最值得写的 1 个选题”，再根据“文章大纲”和“风险点”补充事实核查、数据和案例。
+后续写完整文章时，可以先选择 `topic-radar` 中最值得写的 1 个选题，再根据研究方向补充事实核查、数据和案例。
 
 ## Telegram 推送
 
-日报生成成功后，`scripts/run_daily.py` 会调用 Telegram Bot API，把最新 Markdown 日报作为附件发送。
+选题雷达生成成功后，`scripts/run_daily.py` 会调用 Telegram Bot API，把 `reports/topic-radar-YYYY-MM-DD.md` 作为附件发送。完整日报 `reports/daily-tech-news-YYYY-MM-DD.md` 仍会保留在本地。
 
 Telegram 配置建议写在项目根目录的 `.env.dailynews`，并使用 `DAILYNEWS_TELEGRAM_*` 命名空间，避免和 OpenClaw/Codex 的 Telegram 对话 bot 共享通用 `TELEGRAM_*` 环境变量：
 
@@ -191,7 +218,7 @@ DAILYNEWS_TELEGRAM_PROXY=socks5h://127.0.0.1:7897
 
 ## 网页看板部署
 
-每次 `scripts/run_daily.py` 生成日报后，会自动调用 `scripts/build_site.py`，把 Markdown 日报构建成静态网页：
+每次 `scripts/run_daily.py` 生成日报和选题雷达后，会自动调用 `scripts/build_site.py`，把 Markdown 报告构建成静态网页：
 
 ```text
 site/
@@ -226,7 +253,7 @@ http://127.0.0.1:8080
 - GitHub Pages：运行 `scripts/build_site.py` 后，把生成的 `site/` 作为 Pages artifact 发布。
 - Cloudflare Pages / Vercel：项目根目录作为仓库根目录，构建命令留空或使用 `.venv/bin/python scripts/build_site.py`，发布目录设置为 `site`。
 - 默认不提交 `reports/`、`outputs/`、`site/`、`logs/` 和 `data/` 运行产物；这些都可以由定时任务重新生成。
-- 不要提交 `.env`、`.env.dailynews`、`.env.example`、`.venv/`、`logs/`、`data/raw/`、`data/processed/`、`reports/`、`outputs/`、`site/`。这些已在 `.gitignore` 中排除。
+- 不要提交 `.env`、`.env.dailynews`、`.venv/`、`logs/`、`data/raw/`、`data/normalized/`、`data/events/`、`data/recommendations/`、`data/processed/`、`reports/`、`outputs/`、`site/`。这些已在 `.gitignore` 中排除。
 
 推荐的 crontab 写法：
 
@@ -236,7 +263,7 @@ http://127.0.0.1:8080
 
 ## 排序逻辑
 
-`scripts/rank.py` 会综合以下因素打分：
+日报热度排序会综合以下因素打分：
 
 - 来源权重：官方博客和高质量媒体可获得更高基础分
 - 关键词：`sources.yml` 中 high/medium 关键词加分，exclude 关键词扣分
@@ -247,3 +274,16 @@ http://127.0.0.1:8080
 ## 去重逻辑
 
 `scripts/dedupe.py` 会先按规范化 URL 去重，再按标题相似度做轻量合并，并保留重复来源列表。
+
+## 推荐逻辑
+
+`scripts/generate_recommendations.py` 会为每个事件生成 0～10 分评分：
+
+- 重要性 `importance_score`
+- 商业价值 `business_score`
+- 讨论价值 `discussion_score`
+- 延展性 `depth_score`
+- 争议性 `controversy_score`
+- 时效性 `freshness_score`
+
+综合评分默认权重为：重要性 25%、商业价值 25%、讨论价值 20%、延展性 20%、争议性 5%、时效性 5%。Top 5 推送会优先参考 `daily-tech-news` 候选池，再结合日报热度，避免单源但讨论空间较大的稿件脱离当天重点。

@@ -10,6 +10,9 @@ __pycache__/
 
 logs/
 data/raw/
+data/normalized/
+data/events/
+data/recommendations/
 data/processed/
 data/openclaw/
 reports/
